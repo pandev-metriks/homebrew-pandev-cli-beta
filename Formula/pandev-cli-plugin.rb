@@ -1,4 +1,4 @@
-class PandevBeta < Formula
+class PandevCliPlugin < Formula
   desc "Pandev CLI Plugin (Beta)"
   homepage "https://github.com/pandev-metriks/homebrew-pandev-cli-beta"
   version "2.0.2-beta.5" # ← меняешь при каждом beta релизе
