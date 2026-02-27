@@ -6,11 +6,6 @@ class PandevCliPlugin < Formula
   depends_on "jq"
   depends_on "git"
 
-  pour_bottle? do
-    reason "Binary-only formula"
-    satisfy { true }
-  end
-
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/pandev-metriks/homebrew-pandev-cli-beta/releases/download/v#{version}/pandev-cli-plugin_#{version}_macOS_amd64.tar.gz"
@@ -27,6 +22,12 @@ class PandevCliPlugin < Formula
   end
 
   def install
-    prefix.install Dir["*"]
+    libexec.install Dir["*"]
+    bin.install_symlink libexec/"bin/pandev"
+    bin.install_symlink libexec/"bin/pandev-cli-plugin"
+  end
+
+  def post_install
+    touch libexec/"UPDATE_AVAILABLE"
   end
 end
