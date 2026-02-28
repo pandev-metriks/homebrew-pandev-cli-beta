@@ -1,7 +1,7 @@
 class PandevCliPlugin < Formula
   desc "Pandev CLI Plugin (Beta)"
   homepage "https://github.com/pandev-metriks/homebrew-pandev-cli-beta"
-  version "2.0.2-beta.7"
+  version "2.0.2-beta.8"
 
   depends_on "jq"
   depends_on "git"
