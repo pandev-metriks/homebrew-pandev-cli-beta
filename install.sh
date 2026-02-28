@@ -44,7 +44,33 @@ if [[ "$(uname)" == "Darwin" ]]; then
 fi
 
 # -------------------------------------------------------
-# 3. Homebrew check / install
+# 3. gcc check (Linux only)
+# -------------------------------------------------------
+if [[ "$(uname)" == "Linux" ]]; then
+    if ! command -v gcc &>/dev/null; then
+        echo "gcc not found. Installing..."
+        if command -v apt-get &>/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y gcc
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y gcc
+        elif command -v yum &>/dev/null; then
+            sudo yum install -y gcc
+        elif command -v pacman &>/dev/null; then
+            sudo pacman -Sy --noconfirm gcc
+        elif command -v brew &>/dev/null; then
+            brew install gcc
+        else
+            echo "ERROR: Could not detect package manager. Install gcc manually and re-run."
+            exit 1
+        fi
+        echo "gcc installed."
+    else
+        echo "gcc: $(gcc --version | head -1)"
+    fi
+fi
+
+# -------------------------------------------------------
+# 4. Homebrew check / install
 # -------------------------------------------------------
 if ! command -v brew &>/dev/null; then
     echo "Homebrew not found. Installing..."
@@ -63,7 +89,7 @@ else
 fi
 
 # -------------------------------------------------------
-# 4. Uninstall if already installed
+# 5. Uninstall if already installed
 # -------------------------------------------------------
 if brew list pandev-cli-plugin &>/dev/null 2>&1; then
     echo "pandev-cli-plugin is already installed. Reinstalling..."
@@ -73,7 +99,7 @@ else
 fi
 
 # -------------------------------------------------------
-# 5. Install beta
+# 6. Install beta
 # -------------------------------------------------------
 echo "Installing pandev-cli-plugin (beta)..."
 if ! brew install "$FORMULA" 2>&1 | tee /tmp/pandev_brew_install.log; then
