@@ -50,4 +50,4 @@ brew install "$FORMULA"
 
 echo ""
 echo "Installation complete!"
-echo "Close and reopen your terminal, then run: sudo pandev auth"
+echo "Close and reopen your terminal"
