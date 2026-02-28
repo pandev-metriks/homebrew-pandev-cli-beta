@@ -49,21 +49,46 @@ fi
 if [[ "$(uname)" == "Linux" ]]; then
     if ! command -v gcc &>/dev/null; then
         echo "gcc not found. Installing..."
-        if command -v apt-get &>/dev/null; then
-            sudo apt-get update -qq && sudo apt-get install -y gcc
-        elif command -v dnf &>/dev/null; then
-            sudo dnf install -y gcc
-        elif command -v yum &>/dev/null; then
-            sudo yum install -y gcc
-        elif command -v pacman &>/dev/null; then
-            sudo pacman -Sy --noconfirm gcc
-        elif command -v brew &>/dev/null; then
-            brew install gcc
+
+        GCC_INSTALLED=false
+
+        # Check sudo availability without prompting
+        HAS_SUDO=false
+        if sudo -n true 2>/dev/null; then
+            HAS_SUDO=true
+        fi
+
+        if $HAS_SUDO; then
+            if command -v apt-get &>/dev/null; then
+                sudo apt-get update -qq && sudo apt-get install -y gcc && GCC_INSTALLED=true
+            elif command -v dnf &>/dev/null; then
+                sudo dnf install -y gcc && GCC_INSTALLED=true
+            elif command -v yum &>/dev/null; then
+                sudo yum install -y gcc && GCC_INSTALLED=true
+            elif command -v pacman &>/dev/null; then
+                sudo pacman -Sy --noconfirm gcc && GCC_INSTALLED=true
+            fi
         else
-            echo "ERROR: Could not detect package manager. Install gcc manually and re-run."
+            echo "sudo not available, skipping system package managers."
+        fi
+
+        # Fallback: brew (no sudo required)
+        if ! $GCC_INSTALLED && command -v brew &>/dev/null; then
+            brew install gcc && GCC_INSTALLED=true
+        fi
+
+        if ! $GCC_INSTALLED; then
+            echo "ERROR: Could not install gcc (no sudo and no brew available)."
+            echo "       Ask your system administrator to install gcc and re-run."
             exit 1
         fi
-        echo "gcc installed."
+
+        if command -v gcc &>/dev/null; then
+            echo "gcc installed: $(gcc --version | head -1)"
+        else
+            echo "ERROR: gcc installation reported success but gcc is not found."
+            exit 1
+        fi
     else
         echo "gcc: $(gcc --version | head -1)"
     fi
@@ -74,14 +99,29 @@ fi
 # -------------------------------------------------------
 if ! command -v brew &>/dev/null; then
     echo "Homebrew not found. Installing..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    if [[ "$(uname)" == "Linux" ]] && ! sudo -n true 2>/dev/null; then
+        # No sudo on Linux — install Homebrew to user home directory
+        echo "No sudo available. Installing Homebrew to ~/.linuxbrew (no root required)..."
+        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" -- --prefix="$HOME/.linuxbrew" 2>/dev/null \
+            || NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    else
+        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
 
     if [ -f "/opt/homebrew/bin/brew" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -f "$HOME/.linuxbrew/bin/brew" ]; then
+        eval "$("$HOME/.linuxbrew/bin/brew" shellenv)"
     elif [ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
     elif [ -f "/usr/local/bin/brew" ]; then
         eval "$(/usr/local/bin/brew shellenv)"
+    fi
+
+    if ! command -v brew &>/dev/null; then
+        echo "ERROR: Homebrew installation failed."
+        exit 1
     fi
     echo "Homebrew installed."
 else
