@@ -179,4 +179,9 @@ fi
 # -------------------------------------------------------
 echo ""
 echo "Installation complete!"
-echo "Close and reopen your terminal, or run: source ~/.bashrc"
+echo ""
+echo "Run this now to use pandev in the current session:"
+echo ""
+echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
+echo ""
+echo "Or open a new terminal."
