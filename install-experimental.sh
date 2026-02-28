@@ -60,7 +60,7 @@ fi
 # -------------------------------------------------------
 # 4. Branch: Homebrew installed vs direct install
 # -------------------------------------------------------
-if command -v brew &>/dev/null; then
+if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
     echo "Using Homebrew installation path."
 
