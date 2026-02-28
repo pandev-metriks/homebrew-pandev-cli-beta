@@ -48,14 +48,32 @@ fi
 # -------------------------------------------------------
 if ! command -v brew &>/dev/null; then
     echo "Homebrew not found. Installing..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+    if [[ "$(uname)" == "Linux" ]] && ! sudo -n true 2>/dev/null; then
+        # No sudo on Linux — clone brew directly to ~/.homebrew (no root required)
+        echo "No sudo available. Installing Homebrew to ~/.homebrew..."
+        mkdir -p "$HOME/.homebrew"
+        curl -fsSL https://github.com/Homebrew/brew/tarball/master \
+            | tar xz --strip-components 1 -C "$HOME/.homebrew"
+        export PATH="$HOME/.homebrew/bin:$PATH"
+        brew update --force --quiet
+    else
+        NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
 
     if [ -f "/opt/homebrew/bin/brew" ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -f "$HOME/.homebrew/bin/brew" ]; then
+        eval "$("$HOME/.homebrew/bin/brew" shellenv)"
     elif [ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
     elif [ -f "/usr/local/bin/brew" ]; then
         eval "$(/usr/local/bin/brew shellenv)"
+    fi
+
+    if ! command -v brew &>/dev/null; then
+        echo "ERROR: Homebrew installation failed."
+        exit 1
     fi
     echo "Homebrew installed."
 else
