@@ -14,7 +14,37 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 # -------------------------------------------------------
-# 2. Homebrew check / install
+# 2. Command Line Tools check (macOS only)
+# -------------------------------------------------------
+if [[ "$(uname)" == "Darwin" ]]; then
+    fix_clt() {
+        echo "Fixing Command Line Tools..."
+        sudo rm -rf /Library/Developer/CommandLineTools
+        echo "Starting Command Line Tools installation (a dialog will appear)..."
+        sudo xcode-select --install
+        echo ""
+        echo "============================================================"
+        echo "  Please complete the Command Line Tools installation,"
+        echo "  then re-run this script."
+        echo "============================================================"
+        exit 0
+    }
+
+    if ! xcode-select -p &>/dev/null; then
+        echo "Command Line Tools not found."
+        fix_clt
+    else
+        CLT_VERSION=$(pkgutil --pkg-info=com.apple.pkg.CLTools_Executables 2>/dev/null | awk '/version:/{print $2}')
+        if [ -z "$CLT_VERSION" ]; then
+            echo "WARNING: Could not determine Command Line Tools version, proceeding..."
+        else
+            echo "Command Line Tools version: $CLT_VERSION"
+        fi
+    fi
+fi
+
+# -------------------------------------------------------
+# 3. Homebrew check / install
 # -------------------------------------------------------
 if ! command -v brew &>/dev/null; then
     echo "Homebrew not found. Installing..."
@@ -33,7 +63,7 @@ else
 fi
 
 # -------------------------------------------------------
-# 3. Uninstall if already installed
+# 4. Uninstall if already installed
 # -------------------------------------------------------
 if brew list pandev-cli-plugin &>/dev/null 2>&1; then
     echo "pandev-cli-plugin is already installed. Reinstalling..."
@@ -43,10 +73,26 @@ else
 fi
 
 # -------------------------------------------------------
-# 4. Install beta
+# 5. Install beta
 # -------------------------------------------------------
 echo "Installing pandev-cli-plugin (beta)..."
-brew install "$FORMULA"
+if ! brew install "$FORMULA" 2>&1 | tee /tmp/pandev_brew_install.log; then
+    if grep -q "Command Line Tools are too outdated\|CommandLineTools" /tmp/pandev_brew_install.log; then
+        echo ""
+        echo "Detected outdated Command Line Tools. Fixing..."
+        sudo rm -rf /Library/Developer/CommandLineTools
+        echo "Starting Command Line Tools installation (a dialog will appear)..."
+        sudo xcode-select --install
+        echo ""
+        echo "============================================================"
+        echo "  Please complete the Command Line Tools installation,"
+        echo "  then re-run this script."
+        echo "============================================================"
+        exit 0
+    fi
+    echo "Installation failed. See output above."
+    exit 1
+fi
 
 echo ""
 echo "Installation complete!"
