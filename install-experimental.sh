@@ -181,7 +181,5 @@ echo ""
 echo "Installation complete!"
 echo ""
 echo "Run this now to use pandev in the current session:"
-echo ""
-echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
-echo ""
+echo
 echo "Or open a new terminal."
