@@ -62,6 +62,7 @@ if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     brew unlink pandev-cli-plugin 2>/dev/null || true
     brew uninstall pandev-metriks/pandev-cli/pandev-cli-plugin 2>/dev/null || true
     brew uninstall pandev-metriks/pandev-cli-beta/pandev-cli-plugin 2>/dev/null || true
+    brew untap pandev-metriks/pandev-cli 2>/dev/null || true
 
     echo "Installing via Homebrew..."
     brew install "$FORMULA"
