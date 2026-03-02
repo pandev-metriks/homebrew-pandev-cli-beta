@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+VERSION="2.0.2-beta.10"
+
 REPO="pandev-metriks/homebrew-pandev-cli-beta"
 TAP="pandev-metriks/pandev-cli-beta"
 FORMULA="$TAP/pandev-cli-plugin"
@@ -56,13 +58,23 @@ fi
 if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
 
-    if brew list pandev-cli-plugin &>/dev/null 2>&1; then
-        echo "Removing existing brew installation..."
-        brew uninstall pandev-cli-plugin
-    fi
+    echo "Removing existing brew installation (if any)..."
+    brew uninstall pandev-metriks/pandev-cli-beta/pandev-cli-plugin 2>/dev/null || true
 
     echo "Installing via Homebrew..."
     brew install "$FORMULA"
+
+    echo ""
+    echo "Installation complete!"
+    echo ""
+    if command -v pandev &>/dev/null; then
+        echo "pandev is ready to use."
+        echo "Try: pandev --version"
+    else
+        echo "If command not found, restart your terminal."
+    fi
+    echo ""
+    exit 0
 
 else
     echo "Using direct GitHub release installation."
@@ -71,20 +83,7 @@ else
     rm -rf "$INSTALL_DIR"
     rm -f "$BIN_LINK" "$BIN_DIR/pandev-cli-plugin"
 
-    # Fetch latest release version
-    echo "Fetching latest release..."
-    RELEASE_JSON=$(curl -fsSL "https://api.github.com/repos/$REPO/releases" \
-        -H "Accept: application/vnd.github+json")
-
-    VERSION=$(echo "$RELEASE_JSON" | grep '"tag_name"' | head -1 \
-        | sed 's/.*"tag_name": *"v\?\([^"]*\)".*/\1/')
-
-    if [ -z "$VERSION" ]; then
-        echo "ERROR: Could not determine latest release version."
-        exit 1
-    fi
-
-    echo "Latest version: $VERSION"
+    echo "Version: $VERSION"
 
     ASSET="pandev-cli-plugin_${VERSION}_${OS_NAME}_${ARCH_NAME}.tar.gz"
     DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/$ASSET"
