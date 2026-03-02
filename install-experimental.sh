@@ -58,7 +58,9 @@ fi
 if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
 
-    echo "Removing existing brew installation (if any)..."
+    echo "Removing existing installation (if any)..."
+    brew unlink pandev-cli-plugin 2>/dev/null || true
+    brew uninstall pandev-metriks/pandev-cli/pandev-cli-plugin 2>/dev/null || true
     brew uninstall pandev-metriks/pandev-cli-beta/pandev-cli-plugin 2>/dev/null || true
 
     echo "Installing via Homebrew..."
