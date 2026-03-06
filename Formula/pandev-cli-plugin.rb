@@ -9,16 +9,16 @@ class PandevCliPlugin < Formula
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/pandev-metriks/homebrew-pandev-cli-beta/releases/download/v#{version}/pandev-cli-plugin_#{version}_macOS_amd64.tar.gz"
-      sha256 "ad98acc2b8cc9a7bb981ab5b5ed6ed607a5937552b2caf9857fba786eb32a96b"
+      sha256 "e04dbd870a8cb473daa4d1a7150bd38079f739f7060da0919c3afdf26b786283"
     else
       url "https://github.com/pandev-metriks/homebrew-pandev-cli-beta/releases/download/v#{version}/pandev-cli-plugin_#{version}_macOS_arm64.tar.gz"
-      sha256 "19fab65548afcc92be280ed516c7ded66a70bb0c1f278013965b19b76cfbcf07"
+      sha256 "c30267e3a75e3031503e81ee4422467076c972736cec2af79d37be8fd8fdc8b8"
     end
   end
 
   on_linux do
     url "https://github.com/pandev-metriks/homebrew-pandev-cli-beta/releases/download/v#{version}/pandev-cli-plugin_#{version}_Linux_amd64.tar.gz"
-    sha256 "cd602541a5f28edafaff38f162138d4d46f856bbec89046a71e184606a32c914"
+    sha256 "0c5e6beee3d92c144e76cb52391371a50e2ea28d7066fc8ed16700e4f89b42e1"
   end
 
   def install
