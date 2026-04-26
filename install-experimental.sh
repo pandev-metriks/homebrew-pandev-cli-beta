@@ -71,6 +71,9 @@ if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Installation complete!"
     echo ""
     if command -v pandev &>/dev/null; then
+        echo "Activating watchers via 'pandev --install'..."
+        pandev --install || echo "WARNING: 'pandev --install' failed. Run it manually to activate watchers."
+        echo ""
         echo "pandev is ready to use."
         echo "Try: pandev --version"
     else
@@ -151,6 +154,9 @@ echo "Installation complete!"
 echo ""
 
 if command -v pandev &>/dev/null; then
+    echo "Activating watchers via 'pandev --install'..."
+    pandev --install || echo "WARNING: 'pandev --install' failed. Run it manually to activate watchers."
+    echo ""
     echo "pandev is ready to use."
     echo "Try: pandev --version"
 else
