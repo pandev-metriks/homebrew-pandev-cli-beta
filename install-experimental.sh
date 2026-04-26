@@ -148,14 +148,35 @@ echo ""
 echo "Installation complete!"
 echo ""
 
+# Make freshly installed binaries findable in this shell session:
+#  - brew shellenv adds Homebrew bin to PATH (covers fresh-PATH script invocation)
+#  - hash -r drops bash's command-path cache so symlinks created during this run resolve
+if command -v brew &>/dev/null; then
+    eval "$(brew shellenv 2>/dev/null)" || true
+fi
+hash -r 2>/dev/null || true
+
+# Locate pandev binary (PATH first, then brew prefix, then direct-install symlink)
+PANDEV_BIN=""
 if command -v pandev &>/dev/null; then
-    echo "Activating watchers via 'pandev --install'..."
-    pandev --install || echo "WARNING: 'pandev --install' failed. Run it manually to activate watchers."
+    PANDEV_BIN=$(command -v pandev)
+elif command -v brew &>/dev/null; then
+    BREW_PREFIX_BIN="$(brew --prefix 2>/dev/null)/bin/pandev"
+    [ -x "$BREW_PREFIX_BIN" ] && PANDEV_BIN="$BREW_PREFIX_BIN"
+fi
+if [ -z "$PANDEV_BIN" ] && [ -x "$BIN_LINK" ]; then
+    PANDEV_BIN="$BIN_LINK"
+fi
+
+if [ -n "$PANDEV_BIN" ]; then
+    echo "Activating watchers via '$PANDEV_BIN --install'..."
+    "$PANDEV_BIN" --install || echo "WARNING: '$PANDEV_BIN --install' failed. Run 'pandev --install' manually to activate watchers."
     echo ""
     echo "pandev is ready to use."
     echo "Try: pandev --version"
 else
-    echo "If command not found, restart your terminal."
+    echo "WARNING: pandev binary not found after install."
+    echo "Restart your terminal and run: pandev --install"
 fi
 
 echo ""
