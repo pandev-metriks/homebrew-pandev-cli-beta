@@ -7,6 +7,9 @@ REPO="pandev-metriks/homebrew-pandev-cli-beta"
 TAP="pandev-metriks/pandev-cli-beta"
 FORMULA="$TAP/pandev-cli-plugin"
 
+STABLE_TAP="pandev-metriks/pandev-cli"
+STABLE_FORMULA="$STABLE_TAP/pandev-cli-plugin"
+
 INSTALL_DIR="$HOME/.pandev"
 BIN_DIR="$HOME/.local/bin"
 BIN_LINK="$BIN_DIR/pandev"
@@ -53,42 +56,34 @@ if [[ "$OS" == "Darwin" ]]; then
 fi
 
 # -------------------------------------------------------
-# 4. Homebrew path (macOS only)
+# 4. Remove any existing installation (beta + stable, brew + direct)
+# -------------------------------------------------------
+echo "Removing existing installation (if any)..."
+
+if command -v brew &>/dev/null; then
+    brew unlink pandev-cli-plugin 2>/dev/null || true
+    brew uninstall "$STABLE_FORMULA" 2>/dev/null || true
+    brew untap "$STABLE_TAP" 2>/dev/null || true
+    brew uninstall "$FORMULA" 2>/dev/null || true
+    brew untap "$TAP" 2>/dev/null || true
+fi
+
+rm -rf "$INSTALL_DIR"
+rm -f "$BIN_LINK" "$BIN_DIR/pandev-cli-plugin"
+
+echo "Cleanup complete."
+
+# -------------------------------------------------------
+# 5. Install (Homebrew on macOS, direct GitHub release otherwise)
 # -------------------------------------------------------
 if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
-
-    echo "Removing existing installation (if any)..."
-    brew unlink pandev-cli-plugin 2>/dev/null || true
-    brew uninstall pandev-metriks/pandev-cli/pandev-cli-plugin 2>/dev/null || true
-    brew uninstall pandev-metriks/pandev-cli-beta/pandev-cli-plugin 2>/dev/null || true
-    brew untap pandev-metriks/pandev-cli 2>/dev/null || true
-
+    echo "Updating Homebrew..."
+    brew update 2>/dev/null || true
     echo "Installing via Homebrew..."
     brew install "$FORMULA"
-
-    echo ""
-    echo "Installation complete!"
-    echo ""
-    if command -v pandev &>/dev/null; then
-        echo "Activating watchers via 'pandev --install'..."
-        pandev --install || echo "WARNING: 'pandev --install' failed. Run it manually to activate watchers."
-        echo ""
-        echo "pandev is ready to use."
-        echo "Try: pandev --version"
-    else
-        echo "If command not found, restart your terminal."
-    fi
-    echo ""
-    exit 0
-
 else
     echo "Using direct GitHub release installation."
-
-    # Cleanup previous install
-    rm -rf "$INSTALL_DIR"
-    rm -f "$BIN_LINK" "$BIN_DIR/pandev-cli-plugin"
-
     echo "Version: $VERSION"
 
     ASSET="pandev-cli-plugin_${VERSION}_${OS_NAME}_${ARCH_NAME}.tar.gz"
@@ -113,7 +108,7 @@ else
 fi
 
 # -------------------------------------------------------
-# 5. Add ~/.local/bin to PATH permanently
+# 6. Add ~/.local/bin to PATH permanently
 # -------------------------------------------------------
 
 detect_profile() {
@@ -147,7 +142,7 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
 fi
 
 # -------------------------------------------------------
-# Done
+# 7. Activate watchers (must run after install — important!)
 # -------------------------------------------------------
 echo ""
 echo "Installation complete!"
