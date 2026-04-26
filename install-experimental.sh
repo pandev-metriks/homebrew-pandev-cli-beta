@@ -55,6 +55,12 @@ if [[ "$OS" == "Darwin" ]]; then
     fi
 fi
 
+# Detach stdin from the invoking pipe (e.g. `curl ... | bash`).
+# Otherwise commands like `brew install` may consume bytes from the script
+# itself off the pipe, causing bash to hit EOF early and exit silently
+# before reaching the post-install activation step.
+exec < /dev/null
+
 # -------------------------------------------------------
 # 4. Remove any existing installation (beta + stable, brew + direct)
 # -------------------------------------------------------
