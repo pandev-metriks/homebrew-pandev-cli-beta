@@ -55,12 +55,6 @@ if [[ "$OS" == "Darwin" ]]; then
     fi
 fi
 
-# Detach stdin from the invoking pipe (e.g. `curl ... | bash`).
-# Otherwise commands like `brew install` may consume bytes from the script
-# itself off the pipe, causing bash to hit EOF early and exit silently
-# before reaching the post-install activation step.
-exec < /dev/null
-
 # -------------------------------------------------------
 # 4. Remove any existing installation (beta + stable, brew + direct)
 # -------------------------------------------------------
@@ -85,9 +79,12 @@ echo "Cleanup complete."
 if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
     echo "Updating Homebrew..."
-    brew update 2>/dev/null || true
+    brew update </dev/null 2>/dev/null || true
     echo "Installing via Homebrew..."
-    brew install "$FORMULA"
+    # Redirect stdin from /dev/null so brew install can't consume bytes from
+    # the script itself when invoked via `curl ... | bash` (which would make
+    # bash hit EOF early and silently skip the post-install steps).
+    brew install "$FORMULA" </dev/null
 else
     echo "Using direct GitHub release installation."
     echo "Version: $VERSION"
