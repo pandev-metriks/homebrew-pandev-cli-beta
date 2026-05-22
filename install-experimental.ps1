@@ -25,7 +25,7 @@
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
       2.0.8.11               - semantic version, e.g. 2.0.8.11
-      a6327254dd61c009fccf03af8f4d8bae20ead1424fd02eb087001d10425f983e  - checksum of the Windows .zip asset
+      8c89edebe84f04c8e526a9a62f37c80b3ba24abb823339a73b97b6d80a8b4cee  - checksum of the Windows .zip asset
 
     EXECUTION MODEL:
     Designed to be safe under `iwr | iex` - i.e., when iex runs the
@@ -56,7 +56,7 @@
 
     # Templated by CI. Publish step rewrites these literals on every release.
     $VERSION = '2.0.8.11'
-    $WINDOWS_AMD64_SHA256 = 'a6327254dd61c009fccf03af8f4d8bae20ead1424fd02eb087001d10425f983e'
+    $WINDOWS_AMD64_SHA256 = '8c89edebe84f04c8e526a9a62f37c80b3ba24abb823339a73b97b6d80a8b4cee'
 
     $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
     $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
@@ -80,7 +80,7 @@
         return
     }
 
-    if ([string]::IsNullOrWhiteSpace($WINDOWS_AMD64_SHA256) -or $WINDOWS_AMD64_SHA256 -eq 'a6327254dd61c009fccf03af8f4d8bae20ead1424fd02eb087001d10425f983e') {
+    if ([string]::IsNullOrWhiteSpace($WINDOWS_AMD64_SHA256) -or $WINDOWS_AMD64_SHA256 -eq '8c89edebe84f04c8e526a9a62f37c80b3ba24abb823339a73b97b6d80a8b4cee') {
         Write-Host "ERROR: Windows installer is not available for v$VERSION." -ForegroundColor Red
         Write-Host "       The CI build for Windows failed for this release." -ForegroundColor Red
         Write-Host "       Try a newer beta version once it lands, or contact the team." -ForegroundColor Red
