@@ -1,7 +1,25 @@
 #!/bin/bash
+# =============================================================================
+#  PanDev CLI — Beta install bootstrap
+#
+#  Single-command install entry point exposed at
+#    https://raw.githubusercontent.com/pandev-metriks/homebrew-pandev-cli-beta/main/install-experimental.sh
+#  Designed to be run via `curl -fsSL <url> | bash`.
+#
+#  Source-of-truth lives in pdm-source/release/install-experimental.sh. The
+#  beta release CI workflow (.github/workflows/build-dev-macos-linux.yml)
+#  copies this file into the beta tap repo verbatim and replaces the @-tokens
+#  below with the actual release version and per-asset SHA256s.
+#
+#  Tokens replaced by the publish step (do NOT pre-fill them here):
+#    2.0.8.11               — semantic version, e.g. 2.0.8.11
+#      — checksum of the Windows .zip asset
+#  macOS/Linux SHAs are patched into Formula/pandev-cli-plugin.rb, not here;
+#  Homebrew enforces them at install time.
+# =============================================================================
 set -e
 
-VERSION="2.0.8.10"
+VERSION="2.0.8.11"
 
 REPO="pandev-metriks/homebrew-pandev-cli-beta"
 TAP="pandev-metriks/pandev-cli-beta"
@@ -14,12 +32,18 @@ INSTALL_DIR="$HOME/.pandev"
 BIN_DIR="$HOME/.local/bin"
 BIN_LINK="$BIN_DIR/pandev"
 
+# Windows-only: SHA256 of the .zip asset. Used to verify the download in the
+# `curl | bash` path where there's no Homebrew Formula to do it for us.
+WINDOWS_AMD64_SHA256=""
+
 # -------------------------------------------------------
-# 1. Root check
+# 1. Root check (skipped on Windows — Git Bash has no real "root")
 # -------------------------------------------------------
-if [ "$(id -u)" -eq 0 ]; then
-    echo "ERROR: Do not run this script as root."
-    exit 1
+if command -v id >/dev/null 2>&1 && [ "$(id -u 2>/dev/null || echo 1000)" -eq 0 ]; then
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) : ;;  # MSYS reports uid 0 inside Git Bash; harmless
+        *) echo "ERROR: Do not run this script as root."; exit 1 ;;
+    esac
 fi
 
 # -------------------------------------------------------
@@ -29,14 +53,18 @@ OS=$(uname -s)
 ARCH=$(uname -m)
 
 case "$ARCH" in
-    x86_64) ARCH_NAME="amd64" ;;
+    x86_64|amd64) ARCH_NAME="amd64" ;;
     arm64|aarch64) ARCH_NAME="arm64" ;;
     *) echo "ERROR: Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
 case "$OS" in
-    Darwin) OS_NAME="macOS" ;;
-    Linux)  OS_NAME="Linux" ;;
+    Darwin)               OS_NAME="macOS" ;;
+    Linux)                OS_NAME="Linux" ;;
+    # Git for Windows (MINGW64/MINGW32), MSYS2, and Cygwin all report a
+    # platform string starting with one of these prefixes. WSL reports
+    # "Linux" and is handled above — the WSL flow is the regular Linux flow.
+    MINGW*|MSYS*|CYGWIN*) OS_NAME="Windows"; ARCH_NAME="amd64" ;;
     *) echo "ERROR: Unsupported OS: $OS"; exit 1 ;;
 esac
 
@@ -56,7 +84,92 @@ if [[ "$OS" == "Darwin" ]]; then
 fi
 
 # -------------------------------------------------------
-# 4. Remove any existing installation (beta + stable, brew + direct)
+# 4. Windows — delegate to install-pandev.ps1 and exit
+# -------------------------------------------------------
+# On Windows there is no Homebrew, no ~/.local/bin convention, and no
+# `pandev --install` post-install hook — MSIX install handles everything via
+# Add-AppxPackage + the windows.startupTask manifest extension. Keep the
+# Windows path completely separate from the macOS/Linux flow below.
+if [[ "$OS_NAME" == "Windows" ]]; then
+    if ! command -v powershell.exe >/dev/null 2>&1; then
+        echo "ERROR: powershell.exe not on PATH."
+        echo "       Run this script from Git Bash, MSYS2, or Cygwin on a host"
+        echo "       where Windows PowerShell is available (default since Win 7)."
+        exit 1
+    fi
+
+    # A blank WINDOWS_AMD64_SHA256 means CI couldn't render a real checksum
+    # for this release — either the Windows build job failed, or someone
+    # invoked the source template without going through the publish step.
+    # In both cases the .zip asset does not exist in the GitHub release, so
+    # fail fast with an actionable message instead of letting curl 404.
+    if [[ -z "$WINDOWS_AMD64_SHA256" || "$WINDOWS_AMD64_SHA256" == "" ]]; then
+        echo "ERROR: Windows installer is not available for v${VERSION}."
+        echo "       The CI build for Windows failed for this release."
+        echo "       Try a newer beta version once it lands, or contact the team."
+        exit 1
+    fi
+
+    ASSET="pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
+    DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/$ASSET"
+
+    TMP_DIR=$(mktemp -d)
+    trap 'rm -rf "$TMP_DIR"' EXIT
+
+    echo "Downloading $ASSET..."
+    curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 30 --max-time 600 \
+         "$DOWNLOAD_URL" -o "$TMP_DIR/$ASSET"
+
+    echo "Verifying checksum..."
+    ACTUAL_SHA=$(sha256sum "$TMP_DIR/$ASSET" | awk '{print $1}')
+    if [[ "$ACTUAL_SHA" != "$WINDOWS_AMD64_SHA256" ]]; then
+        echo "ERROR: SHA256 mismatch for $ASSET."
+        echo "       expected: $WINDOWS_AMD64_SHA256"
+        echo "       actual:   $ACTUAL_SHA"
+        exit 1
+    fi
+
+    echo "Extracting..."
+    if command -v unzip >/dev/null 2>&1; then
+        unzip -q -o "$TMP_DIR/$ASSET" -d "$TMP_DIR"
+    else
+        # Git for Windows historically shipped unzip; fall back to PowerShell
+        # Expand-Archive when it's absent (slim MSYS installs).
+        powershell.exe -NoProfile -NonInteractive -Command \
+            "Expand-Archive -Path '$(cygpath -w "$TMP_DIR/$ASSET")' -DestinationPath '$(cygpath -w "$TMP_DIR")' -Force"
+    fi
+
+    PS_SCRIPT_UNIX="$TMP_DIR/install-pandev.ps1"
+    if [[ ! -f "$PS_SCRIPT_UNIX" ]]; then
+        echo "ERROR: install-pandev.ps1 missing from $ASSET. Aborting."
+        exit 1
+    fi
+
+    # Translate UNIX-style paths from MSYS/Cygwin to Windows-style so PowerShell
+    # can resolve them. `cygpath -w` is provided by Git Bash, MSYS2, and Cygwin.
+    PS_SCRIPT_WIN=$(cygpath -w "$PS_SCRIPT_UNIX")
+
+    # Hand off to PowerShell. install-pandev.ps1 self-elevates via UAC,
+    # imports the MSIX signing cert into LocalMachine\TrustedPeople, and runs
+    # Add-AppxPackage. -NonInteractive skips the final "press any key" pause
+    # so the curl|bash flow terminates cleanly.
+    echo "Launching Windows installer (UAC prompt will appear)..."
+    if ! powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PS_SCRIPT_WIN" -NonInteractive; then
+        echo "ERROR: install-pandev.ps1 exited with a non-zero code." >&2
+        exit 1
+    fi
+
+    echo ""
+    echo "Installation complete!"
+    echo ""
+    echo "Open a NEW PowerShell window (so the 'pandev' appExecutionAlias resolves),"
+    echo "then run: pandev login"
+    echo ""
+    exit 0
+fi
+
+# -------------------------------------------------------
+# 5. Remove any existing installation (beta + stable, brew + direct)
 # -------------------------------------------------------
 echo "Removing existing installation (if any)..."
 
@@ -74,7 +187,7 @@ rm -f "$BIN_LINK" "$BIN_DIR/pandev-cli-plugin"
 echo "Cleanup complete."
 
 # -------------------------------------------------------
-# 5. Install (Homebrew on macOS, direct GitHub release otherwise)
+# 6. Install (Homebrew on macOS, direct GitHub release otherwise)
 # -------------------------------------------------------
 if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
@@ -111,7 +224,7 @@ else
 fi
 
 # -------------------------------------------------------
-# 6. Add ~/.local/bin to PATH permanently
+# 7. Add ~/.local/bin to PATH permanently
 # -------------------------------------------------------
 
 detect_profile() {
@@ -145,7 +258,7 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
 fi
 
 # -------------------------------------------------------
-# 7. Activate watchers (must run after install — important!)
+# 8. Activate watchers (must run after install — important!)
 # -------------------------------------------------------
 echo ""
 echo "Installation complete!"
