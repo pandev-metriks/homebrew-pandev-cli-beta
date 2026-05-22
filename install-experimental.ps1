@@ -25,7 +25,7 @@
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
       2.0.8.11               - semantic version, e.g. 2.0.8.11
-      8c89edebe84f04c8e526a9a62f37c80b3ba24abb823339a73b97b6d80a8b4cee  - checksum of the Windows .zip asset
+      6d5aa1d41a743df93e4bca2a2bdde23e7e38098da9328eb8e136869958c0d04f  - checksum of the Windows .zip asset
 
     EXECUTION MODEL:
     Designed to be safe under `iwr | iex` - i.e., when iex runs the
@@ -56,7 +56,7 @@
 
     # Templated by CI. Publish step rewrites these literals on every release.
     $VERSION = '2.0.8.11'
-    $WINDOWS_AMD64_SHA256 = '8c89edebe84f04c8e526a9a62f37c80b3ba24abb823339a73b97b6d80a8b4cee'
+    $WINDOWS_AMD64_SHA256 = '6d5aa1d41a743df93e4bca2a2bdde23e7e38098da9328eb8e136869958c0d04f'
 
     $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
     $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
@@ -80,7 +80,15 @@
         return
     }
 
-    if ([string]::IsNullOrWhiteSpace($WINDOWS_AMD64_SHA256) -or $WINDOWS_AMD64_SHA256 -eq '8c89edebe84f04c8e526a9a62f37c80b3ba24abb823339a73b97b6d80a8b4cee') {
+    # Detect un-templated state by SHA *shape* (64 lowercase hex chars),
+    # NOT by literal token equality. Earlier we compared against
+    # '6d5aa1d41a743df93e4bca2a2bdde23e7e38098da9328eb8e136869958c0d04f', but the publish step's str.replace runs
+    # over THE WHOLE FILE - including the literal token inside this check
+    # - so after templating the comparison became
+    # "$WINDOWS_AMD64_SHA256 -eq <the actual hash>", which is always true,
+    # so the script always reported "installer not available" even on
+    # successful builds. Length+regex check is immune to this self-replace.
+    if ($WINDOWS_AMD64_SHA256 -notmatch '^[a-f0-9]{64}$') {
         Write-Host "ERROR: Windows installer is not available for v$VERSION." -ForegroundColor Red
         Write-Host "       The CI build for Windows failed for this release." -ForegroundColor Red
         Write-Host "       Try a newer beta version once it lands, or contact the team." -ForegroundColor Red
