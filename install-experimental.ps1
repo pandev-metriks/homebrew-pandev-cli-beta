@@ -25,7 +25,7 @@
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
       2.0.8.11               - semantic version, e.g. 2.0.8.11
-        - checksum of the Windows .zip asset
+      f4749fd945079faa0ef638778263a09f552b0206fc615999790f9b94efce0121  - checksum of the Windows .zip asset
 #>
 
 [CmdletBinding()]
@@ -43,7 +43,7 @@ try {
 
 # Templated by CI. The publish step rewrites these literals on every release.
 $VERSION = '2.0.8.11'
-$WINDOWS_AMD64_SHA256 = ''
+$WINDOWS_AMD64_SHA256 = 'f4749fd945079faa0ef638778263a09f552b0206fc615999790f9b94efce0121'
 
 $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
 $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
@@ -73,7 +73,7 @@ if ($PSVersionTable.PSEdition -eq 'Core' -and -not $IsWindows) {
 # Almost always the Windows build job failed; the .zip asset will not exist
 # in the GitHub release. Fail fast with an actionable message instead of
 # letting Invoke-WebRequest hit a 404.
-if ([string]::IsNullOrWhiteSpace($WINDOWS_AMD64_SHA256) -or $WINDOWS_AMD64_SHA256 -eq '') {
+if ([string]::IsNullOrWhiteSpace($WINDOWS_AMD64_SHA256) -or $WINDOWS_AMD64_SHA256 -eq 'f4749fd945079faa0ef638778263a09f552b0206fc615999790f9b94efce0121') {
     Write-Host "ERROR: Windows installer is not available for v$VERSION." -ForegroundColor Red
     Write-Host "       The CI build for Windows failed for this release." -ForegroundColor Red
     Write-Host "       Try a newer beta version once it lands, or contact the team." -ForegroundColor Red

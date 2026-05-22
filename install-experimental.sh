@@ -13,7 +13,7 @@
 #
 #  Tokens replaced by the publish step (do NOT pre-fill them here):
 #    2.0.8.11               — semantic version, e.g. 2.0.8.11
-#      — checksum of the Windows .zip asset
+#    f4749fd945079faa0ef638778263a09f552b0206fc615999790f9b94efce0121  — checksum of the Windows .zip asset
 #  macOS/Linux SHAs are patched into Formula/pandev-cli-plugin.rb, not here;
 #  Homebrew enforces them at install time.
 # =============================================================================
@@ -34,7 +34,7 @@ BIN_LINK="$BIN_DIR/pandev"
 
 # Windows-only: SHA256 of the .zip asset. Used to verify the download in the
 # `curl | bash` path where there's no Homebrew Formula to do it for us.
-WINDOWS_AMD64_SHA256=""
+WINDOWS_AMD64_SHA256="f4749fd945079faa0ef638778263a09f552b0206fc615999790f9b94efce0121"
 
 # -------------------------------------------------------
 # 1. Root check (skipped on Windows — Git Bash has no real "root")
@@ -103,7 +103,7 @@ if [[ "$OS_NAME" == "Windows" ]]; then
     # invoked the source template without going through the publish step.
     # In both cases the .zip asset does not exist in the GitHub release, so
     # fail fast with an actionable message instead of letting curl 404.
-    if [[ -z "$WINDOWS_AMD64_SHA256" || "$WINDOWS_AMD64_SHA256" == "" ]]; then
+    if [[ -z "$WINDOWS_AMD64_SHA256" || "$WINDOWS_AMD64_SHA256" == "f4749fd945079faa0ef638778263a09f552b0206fc615999790f9b94efce0121" ]]; then
         echo "ERROR: Windows installer is not available for v${VERSION}."
         echo "       The CI build for Windows failed for this release."
         echo "       Try a newer beta version once it lands, or contact the team."
