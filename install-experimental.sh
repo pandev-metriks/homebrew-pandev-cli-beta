@@ -13,7 +13,7 @@
 #
 #  Tokens replaced by the publish step (do NOT pre-fill them here):
 #    2.0.8.11               — semantic version, e.g. 2.0.8.11
-#    4ead980958029650bd826859644acd7db8d400dd9e381a2022b0fd884fab55a8  — checksum of the Windows .zip asset
+#    8c5b5dc77d52de1d1dc857e8db5dc9b7c96b43428f51d5ec7ce1d92225ba5b3a  — checksum of the Windows .zip asset
 #  macOS/Linux SHAs are patched into Formula/pandev-cli-plugin.rb, not here;
 #  Homebrew enforces them at install time.
 # =============================================================================
@@ -34,7 +34,7 @@ BIN_LINK="$BIN_DIR/pandev"
 
 # Windows-only: SHA256 of the .zip asset. Used to verify the download in the
 # `curl | bash` path where there's no Homebrew Formula to do it for us.
-WINDOWS_AMD64_SHA256="4ead980958029650bd826859644acd7db8d400dd9e381a2022b0fd884fab55a8"
+WINDOWS_AMD64_SHA256="8c5b5dc77d52de1d1dc857e8db5dc9b7c96b43428f51d5ec7ce1d92225ba5b3a"
 
 # -------------------------------------------------------
 # 1. Root check (skipped on Windows — Git Bash has no real "root")
