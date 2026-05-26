@@ -13,7 +13,7 @@
 #
 #  Tokens replaced by the publish step (do NOT pre-fill them here):
 #    2.0.8.11               — semantic version, e.g. 2.0.8.11
-#      — checksum of the Windows .zip asset
+#    4ead980958029650bd826859644acd7db8d400dd9e381a2022b0fd884fab55a8  — checksum of the Windows .zip asset
 #  macOS/Linux SHAs are patched into Formula/pandev-cli-plugin.rb, not here;
 #  Homebrew enforces them at install time.
 # =============================================================================
@@ -34,7 +34,7 @@ BIN_LINK="$BIN_DIR/pandev"
 
 # Windows-only: SHA256 of the .zip asset. Used to verify the download in the
 # `curl | bash` path where there's no Homebrew Formula to do it for us.
-WINDOWS_AMD64_SHA256=""
+WINDOWS_AMD64_SHA256="4ead980958029650bd826859644acd7db8d400dd9e381a2022b0fd884fab55a8"
 
 # -------------------------------------------------------
 # 1. Root check (skipped on Windows — Git Bash has no real "root")
@@ -98,12 +98,13 @@ if [[ "$OS_NAME" == "Windows" ]]; then
         exit 1
     fi
 
-    # A blank WINDOWS_AMD64_SHA256 means CI couldn't render a real checksum
-    # for this release — either the Windows build job failed, or someone
-    # invoked the source template without going through the publish step.
-    # In both cases the .zip asset does not exist in the GitHub release, so
-    # fail fast with an actionable message instead of letting curl 404.
-    if [[ -z "$WINDOWS_AMD64_SHA256" || "$WINDOWS_AMD64_SHA256" == "" ]]; then
+    # Detect un-templated state by SHA *shape* (64 lowercase hex chars),
+    # NOT by literal token equality. The publish step's str.replace runs
+    # over THE WHOLE FILE - including any literal token in this very
+    # check - so a comparison like "$X == @TOKEN@" would always be true
+    # after templating because both sides got rewritten to the same hash.
+    # Length+regex check is immune to that self-replace.
+    if ! [[ "$WINDOWS_AMD64_SHA256" =~ ^[a-f0-9]{64}$ ]]; then
         echo "ERROR: Windows installer is not available for v${VERSION}."
         echo "       The CI build for Windows failed for this release."
         echo "       Try a newer beta version once it lands, or contact the team."
