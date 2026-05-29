@@ -231,15 +231,56 @@
     Write-Host "  PanDev CLI installed successfully" -ForegroundColor Green
     Write-Host "==========================================================" -ForegroundColor Green
 
-    if (Get-Command pandev -ErrorAction SilentlyContinue) {
+    # -----------------------------------------------------------------------
+    # If the user is ALREADY logged in, start the watcher live right now.
+    #
+    # The watcher only auto-starts via the MSIX windows.startupTask, which
+    # fires at the NEXT user logon. On a reinstall/upgrade over an existing
+    # login that means the watcher stays dead - and coding time goes
+    # untracked - until the user happens to sign out and back in. When we can
+    # see an existing login (token persisted in this package's LocalState), we
+    # launch it now via `pandev --watcher` so tracking resumes immediately. A
+    # brand-new (not-yet-logged-in) install needs nothing here: `pandev login`
+    # starts the watcher itself.
+    # -----------------------------------------------------------------------
+    $loggedIn = $false
+    try {
+        $pkg = Get-AppxPackage -Name 'PandevInc.PandevCLIPlugin' -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($pkg) {
+            $tokenFile = Join-Path $env:LOCALAPPDATA "Packages\$($pkg.PackageFamilyName)\LocalState\token"
+            $loggedIn = (Test-Path -LiteralPath $tokenFile) -and ((Get-Item -LiteralPath $tokenFile).Length -gt 0)
+        }
+    } catch {
+    }
+
+    $pandevReady = [bool](Get-Command pandev -ErrorAction SilentlyContinue)
+
+    if ($loggedIn -and $pandevReady) {
+        try {
+            Start-Process -FilePath 'pandev' -ArgumentList '--watcher' -WindowStyle Hidden
+            Write-Host "Watcher started - your coding activity is being tracked now." -ForegroundColor Green
+        } catch {
+            Write-Host "NOTE: could not start the watcher now ($($_.Exception.Message))." -ForegroundColor Yellow
+            Write-Host "      It will start automatically at your next sign-in." -ForegroundColor Yellow
+        }
+    }
+
+    if ($pandevReady) {
         Write-Host "The 'pandev' command is ready in this window." -ForegroundColor Green
-        Write-Host "Run: pandev login"
+        if (-not $loggedIn) {
+            Write-Host "Run: pandev login"
+        }
     } else {
         # PATH is now fixed for future shells, but this one may still be stale,
         # or the appExecutionAlias didn't register / is toggled off.
         Write-Host "'pandev' does not resolve in THIS window yet." -ForegroundColor Yellow
         Write-Host ""
-        Write-Host "  1. Open a NEW PowerShell window, then run:  pandev login"
+        if ($loggedIn) {
+            Write-Host "  You're already logged in. Open a NEW PowerShell window to use 'pandev';"
+            Write-Host "  the watcher will start at your next sign-in either way."
+        } else {
+            Write-Host "  1. Open a NEW PowerShell window, then run:  pandev login"
+        }
         Write-Host ""
         Write-Host "If a brand-new window still can't find 'pandev':" -ForegroundColor Yellow
         if (Test-Path -LiteralPath (Join-Path $windowsApps 'pandev.exe')) {
