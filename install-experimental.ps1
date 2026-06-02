@@ -24,8 +24,8 @@
     Windows asset checksum.
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
-      2.0.9               - semantic version, e.g. 2.0.8.11
-      0619119125e86083c06c5e877e536259782efa126caf3afc2c0ba3cf050e584c  - checksum of the Windows .zip asset
+      2.0.9.1               - semantic version, e.g. 2.0.8.11
+      dd9f52e6a0ac3b4c197f8fa3f9be7a2c0404391300ddebf9dd801fb25177cb2f  - checksum of the Windows .zip asset
 
     EXECUTION MODEL:
     Designed to be safe under `iwr | iex` - i.e., when iex runs the
@@ -55,8 +55,8 @@
     }
 
     # Templated by CI. Publish step rewrites these literals on every release.
-    $VERSION = '2.0.9'
-    $WINDOWS_AMD64_SHA256 = '0619119125e86083c06c5e877e536259782efa126caf3afc2c0ba3cf050e584c'
+    $VERSION = '2.0.9.1'
+    $WINDOWS_AMD64_SHA256 = 'dd9f52e6a0ac3b4c197f8fa3f9be7a2c0404391300ddebf9dd801fb25177cb2f'
 
     $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
     $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
@@ -82,7 +82,7 @@
 
     # Detect un-templated state by SHA *shape* (64 lowercase hex chars),
     # NOT by literal token equality. Earlier we compared against
-    # '0619119125e86083c06c5e877e536259782efa126caf3afc2c0ba3cf050e584c', but the publish step's str.replace runs
+    # 'dd9f52e6a0ac3b4c197f8fa3f9be7a2c0404391300ddebf9dd801fb25177cb2f', but the publish step's str.replace runs
     # over THE WHOLE FILE - including the literal token inside this check
     # - so after templating the comparison became
     # "$WINDOWS_AMD64_SHA256 -eq <the actual hash>", which is always true,
