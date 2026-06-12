@@ -1,14 +1,15 @@
 <#
 .SYNOPSIS
-    PanDev CLI - Beta install bootstrap (PowerShell-native).
+    PanDev CLI - install bootstrap (PowerShell-native).
 
 .DESCRIPTION
     Single-command install entry point for Windows users who don't have
     Git Bash / WSL / Cygwin available. Mirrors the macOS/Linux
-    `curl ... install-experimental.sh | bash` UX but speaks native
-    PowerShell so users can copy-paste:
+    `curl ... | bash` UX but speaks native PowerShell so users can
+    copy-paste:
 
-      iwr -useb https://raw.githubusercontent.com/pandev-metriks/homebrew-pandev-cli-beta/main/install-experimental.ps1 | iex
+      beta:   iwr -useb https://raw.githubusercontent.com/pandev-metriks/homebrew-pandev-cli-beta/main/install-experimental.ps1 | iex
+      stable: iwr -useb https://raw.githubusercontent.com/pandev-metriks/homebrew-pandev-cli/main/install.ps1 | iex
 
     Steps:
       1. Download the Windows .zip release asset for the templated VERSION.
@@ -19,13 +20,16 @@
          LocalMachine\TrustedPeople, and runs Add-AppxPackage.
 
     Source-of-truth lives in pdm-source/release/install-experimental.ps1.
-    The beta release CI workflow copies it into the beta tap repo verbatim
-    and replaces the @-tokens below with the actual release version and
-    Windows asset checksum.
+    Both release CI workflows render it on every release: the beta workflow
+    into the beta tap as install-experimental.ps1, the prod workflow into
+    the stable tap as install.ps1. Only the @-tokens below differ between
+    the rendered copies - the install logic itself is channel-agnostic.
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
-      2.0.9.2               - semantic version, e.g. 2.0.8.11
-      17d90d1a3bacaba4d97fbf26c07956660bfa8a57dff23ad750dfb4a81a705323  - checksum of the Windows .zip asset
+      2.1.0               - semantic version, e.g. 2.0.8.11
+      4d4de60bda3079721751b12f81cd23b88cbd4ca86b00f897b1c5a0f146eebc08  - checksum of the Windows .zip asset
+      pandev-metriks/homebrew-pandev-cli-beta                  - tap repo whose GitHub release hosts the .zip
+      Beta               - display label: Beta or Stable
 
     EXECUTION MODEL:
     Designed to be safe under `iwr | iex` - i.e., when iex runs the
@@ -55,8 +59,8 @@
     }
 
     # Templated by CI. Publish step rewrites these literals on every release.
-    $VERSION = '2.0.9.2'
-    $WINDOWS_AMD64_SHA256 = '17d90d1a3bacaba4d97fbf26c07956660bfa8a57dff23ad750dfb4a81a705323'
+    $VERSION = '2.1.0'
+    $WINDOWS_AMD64_SHA256 = '4d4de60bda3079721751b12f81cd23b88cbd4ca86b00f897b1c5a0f146eebc08'
 
     $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
     $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
@@ -76,13 +80,13 @@
     # -----------------------------------------------------------------------
     if ($PSVersionTable.PSEdition -eq 'Core' -and -not $IsWindows) {
         Write-Host "ERROR: This installer is Windows-only." -ForegroundColor Red
-        Write-Host "       For macOS/Linux use the Homebrew tap or install-experimental.sh." -ForegroundColor Red
+        Write-Host "       For macOS/Linux use the Homebrew tap or the .sh installer." -ForegroundColor Red
         return
     }
 
     # Detect un-templated state by SHA *shape* (64 lowercase hex chars),
     # NOT by literal token equality. Earlier we compared against
-    # '17d90d1a3bacaba4d97fbf26c07956660bfa8a57dff23ad750dfb4a81a705323', but the publish step's str.replace runs
+    # '4d4de60bda3079721751b12f81cd23b88cbd4ca86b00f897b1c5a0f146eebc08', but the publish step's str.replace runs
     # over THE WHOLE FILE - including the literal token inside this check
     # - so after templating the comparison became
     # "$WINDOWS_AMD64_SHA256 -eq <the actual hash>", which is always true,
@@ -91,7 +95,7 @@
     if ($WINDOWS_AMD64_SHA256 -notmatch '^[a-f0-9]{64}$') {
         Write-Host "ERROR: Windows installer is not available for v$VERSION." -ForegroundColor Red
         Write-Host "       The CI build for Windows failed for this release." -ForegroundColor Red
-        Write-Host "       Try a newer beta version once it lands, or contact the team." -ForegroundColor Red
+        Write-Host "       Try a newer version once it lands, or contact the team." -ForegroundColor Red
         return
     }
 
