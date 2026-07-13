@@ -13,7 +13,7 @@
 #
 #  Tokens replaced by the publish step (do NOT pre-fill them here):
 #    2.1.4               — semantic version, e.g. 2.0.8.11
-#    fcb58d171e19ada9fa66dd0e7e5bc018442cd0c85d9f724568ce8cb48abb9526  — checksum of the Windows .zip asset
+#    89dca7b3f31400404b185a3a7795474e0c2c4086f24a0e8ded2578bd08d8e7da  — checksum of the Windows .zip asset
 #  macOS/Linux SHAs are patched into Formula/pandev-cli-plugin.rb, not here;
 #  Homebrew enforces them at install time.
 # =============================================================================
@@ -34,7 +34,7 @@ BIN_LINK="$BIN_DIR/pandev"
 
 # Windows-only: SHA256 of the .zip asset. Used to verify the download in the
 # `curl | bash` path where there's no Homebrew Formula to do it for us.
-WINDOWS_AMD64_SHA256="fcb58d171e19ada9fa66dd0e7e5bc018442cd0c85d9f724568ce8cb48abb9526"
+WINDOWS_AMD64_SHA256="89dca7b3f31400404b185a3a7795474e0c2c4086f24a0e8ded2578bd08d8e7da"
 
 # -------------------------------------------------------
 # 1. Root check (skipped on Windows — Git Bash has no real "root")
@@ -176,13 +176,22 @@ echo "Removing existing installation (if any)..."
 
 if command -v brew &>/dev/null; then
     brew unlink pandev-cli-plugin 2>/dev/null || true
-    brew uninstall "$STABLE_FORMULA" 2>/dev/null || true
+    # --force + the BARE formula name removes EVERY installed version/keg of
+    # this formula, whatever tap it came from (beta or stable), and works even
+    # if that tap is already gone. Tap-qualified uninstall silently no-ops once
+    # the tap is untapped and leaves a stale keg that makes the reinstall below
+    # a no-op (old version stays, "nothing changed").
+    brew uninstall --force pandev-cli-plugin 2>/dev/null || true
     brew untap "$STABLE_TAP" 2>/dev/null || true
-    brew uninstall "$FORMULA" 2>/dev/null || true
     brew untap "$TAP" 2>/dev/null || true
+    brew cleanup pandev-cli-plugin 2>/dev/null || true
 fi
 
-rm -rf "$INSTALL_DIR"
+# Remove a previous direct-install: drop only the unpacked app payload and the
+# bin symlinks. Credentials/config live alongside the payload under ~/.pandev
+# (e.g. ~/.pandev/credentials) — do NOT wipe the whole dir, or every reinstall
+# logs the user out. Deleting just the payload dirs keeps the login intact.
+rm -rf "$INSTALL_DIR/bin" "$INSTALL_DIR/lib" "$INSTALL_DIR/runtime" "$INSTALL_DIR/scripts"
 rm -f "$BIN_LINK" "$BIN_DIR/pandev-cli-plugin"
 
 echo "Cleanup complete."
