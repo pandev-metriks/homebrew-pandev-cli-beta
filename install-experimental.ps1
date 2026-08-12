@@ -26,8 +26,8 @@
     the rendered copies - the install logic itself is channel-agnostic.
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
-      2.4.9               - semantic version, e.g. 2.0.8.11
-      58534d5a2adb237468046c8bb71f29dca19728b6dade9dcc743316b326197f15  - checksum of the Windows .zip asset
+      2.4.10               - semantic version, e.g. 2.0.8.11
+      e2ad6ba9660626a786a602abb01a9e46903a80d7f8e1bae3bf3bf8f2eea4c24d  - checksum of the Windows .zip asset
       pandev-metriks/homebrew-pandev-cli-beta                  - tap repo whose GitHub release hosts the .zip
       Beta               - display label: Beta or Stable
 
@@ -59,8 +59,8 @@
     }
 
     # Templated by CI. Publish step rewrites these literals on every release.
-    $VERSION = '2.4.9'
-    $WINDOWS_AMD64_SHA256 = '58534d5a2adb237468046c8bb71f29dca19728b6dade9dcc743316b326197f15'
+    $VERSION = '2.4.10'
+    $WINDOWS_AMD64_SHA256 = 'e2ad6ba9660626a786a602abb01a9e46903a80d7f8e1bae3bf3bf8f2eea4c24d'
 
     $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
     $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
@@ -86,7 +86,7 @@
 
     # Detect un-templated state by SHA *shape* (64 lowercase hex chars),
     # NOT by literal token equality. Earlier we compared against
-    # '58534d5a2adb237468046c8bb71f29dca19728b6dade9dcc743316b326197f15', but the publish step's str.replace runs
+    # 'e2ad6ba9660626a786a602abb01a9e46903a80d7f8e1bae3bf3bf8f2eea4c24d', but the publish step's str.replace runs
     # over THE WHOLE FILE - including the literal token inside this check
     # - so after templating the comparison became
     # "$WINDOWS_AMD64_SHA256 -eq <the actual hash>", which is always true,
