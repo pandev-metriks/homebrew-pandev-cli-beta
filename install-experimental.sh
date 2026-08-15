@@ -1,32 +1,45 @@
 #!/bin/bash
 # =============================================================================
-#  PanDev CLI — Beta install bootstrap
+#  PanDev CLI — install bootstrap (both channels)
 #
-#  Single-command install entry point exposed at
-#    https://raw.githubusercontent.com/pandev-metriks/homebrew-pandev-cli-beta/main/install-experimental.sh
-#  Designed to be run via `curl -fsSL <url> | bash`.
+#  Single-command install entry point, designed to be run via
+#    curl -fsSL <url> | bash
+#  Rendered copies live in the pandev-metriks/pandev-cli repo:
+#    install.sh               — Stable channel
+#    install-experimental.sh  — Beta channel
 #
-#  Source-of-truth lives in pdm-source/release/install-experimental.sh. The
-#  beta release CI workflow (.github/workflows/build-dev-macos-linux.yml)
-#  copies this file into the beta tap repo verbatim and replaces the @-tokens
-#  below with the actual release version and per-asset SHA256s.
+#  Source-of-truth is release/install-experimental.sh in the CLI source repo
+#  (GitLab). The release workflows render it on every release and commit the
+#  result next to the Formula/ directory in pandev-metriks/pandev-cli. Never
+#  edit the rendered copies by hand.
 #
 #  Tokens replaced by the publish step (do NOT pre-fill them here):
-#    2.4.11               — semantic version, e.g. 2.0.8.11
-#    cd59641a2c3afc488f4ceba44a507b5dd30a23ab27e03ce8efec865eab7cd3b7  — checksum of the Windows .zip asset
-#  macOS/Linux SHAs are patched into Formula/pandev-cli-plugin.rb, not here;
-#  Homebrew enforces them at install time.
+#    2.4.12               — semantic version, e.g. 2.5.0
+#    @TAG@                   — release tag hosting the assets, e.g. v2.5.0-beta
+#    Beta               — human-readable channel name: Beta | Stable
+#    @FORMULA@               — formula name: pandev-cli-plugin[-beta]
+#    c0084f662ca7165fde7f9cd04ad2cd9e76040b02d54a400429ff618721aa55d2  — checksum of the Windows .zip asset
+#  macOS/Linux SHAs are enforced by the Homebrew Formula at install time.
 # =============================================================================
 set -e
 
-VERSION="2.4.11"
+VERSION="2.4.12"
+TAG="@TAG@"
+CHANNEL="Beta"
+FORMULA_NAME="@FORMULA@"
 
-REPO="pandev-metriks/homebrew-pandev-cli-beta"
-TAP="pandev-metriks/pandev-cli-beta"
-FORMULA="$TAP/pandev-cli-plugin"
+# All public artifacts (releases, formulas, installers) live in this repo.
+REPO="pandev-metriks/pandev-cli"
+TAP="pandev-metriks/pandev-cli"
+TAP_URL="https://github.com/pandev-metriks/pandev-cli"
+FORMULA="$TAP/$FORMULA_NAME"
 
-STABLE_TAP="pandev-metriks/pandev-cli"
-STABLE_FORMULA="$STABLE_TAP/pandev-cli-plugin"
+# Legacy taps from the pre-consolidation era. We untap them so old installs
+# can't shadow the new one. The legacy stable tap shares the short name
+# pandev-metriks/pandev-cli with the new tap (it pointed at the repo
+# homebrew-pandev-cli) — untapping by name removes whichever is present,
+# and we re-tap from the explicit URL below.
+LEGACY_BETA_TAP="pandev-metriks/pandev-cli-beta"
 
 INSTALL_DIR="$HOME/.pandev"
 BIN_DIR="$HOME/.local/bin"
@@ -34,7 +47,7 @@ BIN_LINK="$BIN_DIR/pandev"
 
 # Windows-only: SHA256 of the .zip asset. Used to verify the download in the
 # `curl | bash` path where there's no Homebrew Formula to do it for us.
-WINDOWS_AMD64_SHA256="cd59641a2c3afc488f4ceba44a507b5dd30a23ab27e03ce8efec865eab7cd3b7"
+WINDOWS_AMD64_SHA256="c0084f662ca7165fde7f9cd04ad2cd9e76040b02d54a400429ff618721aa55d2"
 
 # -------------------------------------------------------
 # 1. Root check (skipped on Windows — Git Bash has no real "root")
@@ -68,6 +81,7 @@ case "$OS" in
     *) echo "ERROR: Unsupported OS: $OS"; exit 1 ;;
 esac
 
+echo "PanDev CLI installer — $CHANNEL channel, v$VERSION"
 echo "Platform detected: $OS_NAME / $ARCH_NAME"
 
 # -------------------------------------------------------
@@ -107,12 +121,12 @@ if [[ "$OS_NAME" == "Windows" ]]; then
     if ! [[ "$WINDOWS_AMD64_SHA256" =~ ^[a-f0-9]{64}$ ]]; then
         echo "ERROR: Windows installer is not available for v${VERSION}."
         echo "       The CI build for Windows failed for this release."
-        echo "       Try a newer beta version once it lands, or contact the team."
+        echo "       Try a newer version once it lands, or contact the team."
         exit 1
     fi
 
     ASSET="pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
-    DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/$ASSET"
+    DOWNLOAD_URL="https://github.com/$REPO/releases/download/${TAG}/$ASSET"
 
     TMP_DIR=$(mktemp -d)
     trap 'rm -rf "$TMP_DIR"' EXIT
@@ -170,21 +184,25 @@ if [[ "$OS_NAME" == "Windows" ]]; then
 fi
 
 # -------------------------------------------------------
-# 5. Remove any existing installation (beta + stable, brew + direct)
+# 5. Remove any existing installation (all channels, all eras, brew + direct)
 # -------------------------------------------------------
 echo "Removing existing installation (if any)..."
 
 if command -v brew &>/dev/null; then
     brew unlink pandev-cli-plugin 2>/dev/null || true
+    brew unlink pandev-cli-plugin-beta 2>/dev/null || true
     # --force + the BARE formula name removes EVERY installed version/keg of
-    # this formula, whatever tap it came from (beta or stable), and works even
-    # if that tap is already gone. Tap-qualified uninstall silently no-ops once
-    # the tap is untapped and leaves a stale keg that makes the reinstall below
-    # a no-op (old version stays, "nothing changed").
+    # the formula, whatever tap it came from, and works even if that tap is
+    # already gone. Tap-qualified uninstall silently no-ops once the tap is
+    # untapped and leaves a stale keg that makes the reinstall below a no-op.
     brew uninstall --force pandev-cli-plugin 2>/dev/null || true
-    brew untap "$STABLE_TAP" 2>/dev/null || true
+    brew uninstall --force pandev-cli-plugin-beta 2>/dev/null || true
+    # Untap both the legacy taps and the current one (re-tapped below). The
+    # legacy stable tap shares the pandev-metriks/pandev-cli short name.
+    brew untap "$LEGACY_BETA_TAP" 2>/dev/null || true
     brew untap "$TAP" 2>/dev/null || true
     brew cleanup pandev-cli-plugin 2>/dev/null || true
+    brew cleanup pandev-cli-plugin-beta 2>/dev/null || true
 fi
 
 # Remove a previous direct-install: drop only the unpacked app payload and the
@@ -201,8 +219,11 @@ echo "Cleanup complete."
 # -------------------------------------------------------
 if [[ "$OS" == "Darwin" ]] && command -v brew &>/dev/null; then
     echo "Homebrew detected: $(brew --version | head -1)"
-    echo "Updating Homebrew..."
-    brew update </dev/null 2>/dev/null || true
+    # The tap is the pandev-cli repo itself, addressed by explicit URL (the
+    # repo intentionally has no homebrew- prefix). The short tap name stays
+    # pandev-metriks/pandev-cli — the same name clients have always had.
+    echo "Tapping $TAP from $TAP_URL..."
+    brew tap "$TAP" "$TAP_URL" </dev/null
     echo "Installing via Homebrew..."
     # Redirect stdin from /dev/null so brew install can't consume bytes from
     # the script itself when invoked via `curl ... | bash` (which would make
@@ -213,7 +234,7 @@ else
     echo "Version: $VERSION"
 
     ASSET="pandev-cli-plugin_${VERSION}_${OS_NAME}_${ARCH_NAME}.tar.gz"
-    DOWNLOAD_URL="https://github.com/$REPO/releases/download/v${VERSION}/$ASSET"
+    DOWNLOAD_URL="https://github.com/$REPO/releases/download/${TAG}/$ASSET"
 
     TMP_DIR=$(mktemp -d)
     trap 'rm -rf "$TMP_DIR"' EXIT

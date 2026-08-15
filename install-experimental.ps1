@@ -26,9 +26,10 @@
     the rendered copies - the install logic itself is channel-agnostic.
 
     Tokens replaced by the publish step (do NOT pre-fill them here):
-      2.4.11               - semantic version, e.g. 2.0.8.11
-      cd59641a2c3afc488f4ceba44a507b5dd30a23ab27e03ce8efec865eab7cd3b7  - checksum of the Windows .zip asset
-      pandev-metriks/homebrew-pandev-cli-beta                  - tap repo whose GitHub release hosts the .zip
+      2.4.12               - semantic version, e.g. 2.5.0
+      @TAG@                   - release tag hosting the assets, e.g. v2.5.0-beta
+      c0084f662ca7165fde7f9cd04ad2cd9e76040b02d54a400429ff618721aa55d2  - checksum of the Windows .zip asset
+      pandev-metriks/homebrew-pandev-cli-beta                  - repo whose GitHub release hosts the .zip
       Beta               - display label: Beta or Stable
 
     EXECUTION MODEL:
@@ -59,12 +60,13 @@
     }
 
     # Templated by CI. Publish step rewrites these literals on every release.
-    $VERSION = '2.4.11'
-    $WINDOWS_AMD64_SHA256 = 'cd59641a2c3afc488f4ceba44a507b5dd30a23ab27e03ce8efec865eab7cd3b7'
+    $VERSION = '2.4.12'
+    $TAG = '@TAG@'
+    $WINDOWS_AMD64_SHA256 = 'c0084f662ca7165fde7f9cd04ad2cd9e76040b02d54a400429ff618721aa55d2'
 
     $REPO = 'pandev-metriks/homebrew-pandev-cli-beta'
     $ASSET_NAME = "pandev-cli-plugin_${VERSION}_Windows_amd64.zip"
-    $DOWNLOAD_URL = "https://github.com/$REPO/releases/download/v${VERSION}/$ASSET_NAME"
+    $DOWNLOAD_URL = "https://github.com/$REPO/releases/download/${TAG}/$ASSET_NAME"
 
     Write-Host ""
     Write-Host "==========================================================" -ForegroundColor Cyan
@@ -86,7 +88,7 @@
 
     # Detect un-templated state by SHA *shape* (64 lowercase hex chars),
     # NOT by literal token equality. Earlier we compared against
-    # 'cd59641a2c3afc488f4ceba44a507b5dd30a23ab27e03ce8efec865eab7cd3b7', but the publish step's str.replace runs
+    # 'c0084f662ca7165fde7f9cd04ad2cd9e76040b02d54a400429ff618721aa55d2', but the publish step's str.replace runs
     # over THE WHOLE FILE - including the literal token inside this check
     # - so after templating the comparison became
     # "$WINDOWS_AMD64_SHA256 -eq <the actual hash>", which is always true,
